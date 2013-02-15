@@ -12,21 +12,32 @@ Subroutine LebedevQuad(funvals,leb_data,integral)
 End Subroutine LebedevQuad
 
 Subroutine GetA(density,leb_data,m,n,A)
+!Calculates n=mx6 array A using lebedev quadrature.
+!density  :: mxn array of function values (ie odf density) 
+!            defined at n lebedev points (theta,phi) at m 
+!            spatial locations.
+!leb_data :: nx3 array of [theta,phi,weights] of lebedev locations
+!            and points on S2
+!A        :: mx6 array of A second-order orientation tensor calculated
+!            by lebedev integration.
+!In this case A = Int_S2[ outer(p,p) * density dp]
+!Owing to symmetry, we only need 6 elements of A.
    Double Precision, Intent(in), Dimension(:,:) :: density
    Double Precision, Intent(in), Dimension(:,:) :: leb_data
    Double Precision, Intent(out), Dimension(:,:) :: A
    Integer, Intent(in) :: m,n
    Double Precision, Dimension(n) :: funvals
    Double Precision, Dimension(n) :: x,y,z
-
+   !Find the components of the unit vectors p.
    x=sin(leb_data(:,1))*cos(leb_data(:,2))
    y=sin(leb_data(:,2))*sin(leb_data(:,1))
    z=cos(leb_data(:,1))
 
 
-
-   ! sOMP sPARALLEL sDO
+   !Now integrate.
+   !OMP PARALLEL DO
    Do i=1,m
+      !Get the integrand, then call LebedevQuad
       funvals=x(:)*x(:)*density(i,:)
       Call LebedevQuad(funvals,leb_data(:,3),A(i,1))
       
@@ -50,26 +61,26 @@ End Subroutine GetA
 
 
 
-   Subroutine RotSym(W,Q,A)
-!     This rotates a Hermitian diagonalized matrix (3x1 array of eigenvals) back 
-!     into the undiagonalized reference frame. Q has to be unitary. 
-!     W=Q^T A Q ; A=Q W Q^T
-!     Returns 6x1 array A.
-      
-      Double Precision, Intent(in), Dimension(3,3) :: Q
-      Double Precision, Intent(in), Dimension(3) :: W
-      Double Precision, Intent(out), Dimension(6) :: A
-      !Saves a touch of time by using the fact that W is diagonal.
-      !6 dot products instead of 6**3
-      !Save a couple of mults by using W*Q instead
-      A(1)=DOT_PRODUCT((Q(1,:)*Q(:,1)),W)
-      A(2)=DOT_PRODUCT((Q(1,:)*Q(:,2)),W)
-      A(3)=DOT_PRODUCT((Q(1,:)*Q(:,3)),W)
-      A(4)=DOT_PRODUCT((Q(2,:)*Q(:,2)),W)
-      A(5)=DOT_PRODUCT((Q(2,:)*Q(:,3)),W)
-      A(6)=DOT_PRODUCT((Q(3,:)*Q(:,3)),W)
+Subroutine RotSym(W,Q,A)
+!  This rotates a Hermitian diagonalized matrix (3x1 array of eigenvals) back 
+!  into the undiagonalized reference frame. Q has to be unitary. 
+!  W=Q^T A Q ; A=Q W Q^T
+!  Returns 6x1 array A.
+   
+   Double Precision, Intent(in), Dimension(3,3) :: Q
+   Double Precision, Intent(in), Dimension(3) :: W
+   Double Precision, Intent(out), Dimension(6) :: A
+   !Saves a touch of time by using the fact that W is diagonal.
+   !6 dot products instead of 6**3
+   !Save a couple of mults by using W*Q instead
+   A(1)=DOT_PRODUCT((Q(1,:)*Q(:,1)),W)
+   A(2)=DOT_PRODUCT((Q(1,:)*Q(:,2)),W)
+   A(3)=DOT_PRODUCT((Q(1,:)*Q(:,3)),W)
+   A(4)=DOT_PRODUCT((Q(2,:)*Q(:,2)),W)
+   A(5)=DOT_PRODUCT((Q(2,:)*Q(:,3)),W)
+   A(6)=DOT_PRODUCT((Q(3,:)*Q(:,3)),W)
 
-   End Subroutine RotSym
+End Subroutine RotSym
 
 
 Subroutine dsyar(A,Q,W,m)

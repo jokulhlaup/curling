@@ -221,7 +221,7 @@ class GolfFlow(NonlinearProblem):
 #############################
 ##Define nonlinear viscosity#
 #############################
-nlvisc(u,W0,W1,W2,W3,W4,W5):
+def nlvisc(u,W0,W1,W2,W3,W4,W5):
    epsxx = (u[0].dx(0))
    epsyy = (u[1].dx(1))
    epszz = (u[2].dx(2))
